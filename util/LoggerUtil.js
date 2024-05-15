@@ -1,10 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { launcherDir } = require('../Paths');
 
 log.transports.file.level = 'debug';
 log.transports.console.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
-log.transports.file.resolvePathFn = () => path.join(launcherDir, 'logs/main.log');
+log.transports.file.resolvePathFn = () => path.join("./", 'logs/main.log');
 log.transports.file.archiveLogFn = (file) => {
     file = file.toString();
     const info = path.parse(file);
@@ -51,6 +50,6 @@ class LoggerUtil {
 
 }
 
-module.exports = function (prefix, style) {
+module.exports = function(prefix, style) {
     return new LoggerUtil(prefix, style)
 }

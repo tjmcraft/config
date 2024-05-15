@@ -1,21 +1,24 @@
-const fs = require('fs');
-const path = require('path');
-const { shallowEqual } = require('/util/Iterates');
-const { debounce } = require('/util/Schedulers');
-const LoggerUtil = require('/util/LoggerUtil');
-const { launcherDir } = require('/Paths');
+const fs = require('fs')
+const path = require('path')
+const { shallowEqual } = require('/util/Iterates')
+const { debounce } = require('/util/Schedulers')
+const LoggerUtil = require('/util/LoggerUtil')
 
 const validateKeySet = (srcObj, destObj) => {
-	if (srcObj == null) srcObj = {};
-	const keys = Object.keys(srcObj);
+	if (srcObj == null) srcObj = {}
+	const keys = Object.keys(srcObj)
 	for (let i = 0; i < keys.length; i++) {
 		if (typeof destObj[keys[i]] === 'undefined') {
-			destObj[keys[i]] = srcObj[keys[i]];
-		} else if (typeof srcObj[keys[i]] === 'object' && srcObj[keys[i]] != null && !(srcObj[keys[i]] instanceof Array)) {
-			destObj[keys[i]] = validateKeySet(srcObj[keys[i]], destObj[keys[i]]);
+			destObj[keys[i]] = srcObj[keys[i]]
+		} else if (
+			typeof srcObj[keys[i]] === 'object' &&
+			srcObj[keys[i]] != null &&
+			!(srcObj[keys[i]] instanceof Array)
+		) {
+			destObj[keys[i]] = validateKeySet(srcObj[keys[i]], destObj[keys[i]])
 		}
 	}
-	return destObj;
+	return destObj
 }
 
 /**
@@ -28,53 +31,60 @@ const validateKeySet = (srcObj, destObj) => {
  * @param {object} params.defaultConfig Default configuration model
  */
 const Config = function ({
-	prefix = "ConfigManager",
-	color = "#1052a5",
+	prefix = 'ConfigManager',
+	color = '#1052a5',
 	configName,
-	configDir = launcherDir,
+	configDir = './',
 	defaultConfig,
 }) {
+	const logger = LoggerUtil(
+		`%c[${prefix}]`,
+		`color: ${color}; font-weight: bold`
+	)
 
-	const logger = LoggerUtil(`%c[${prefix}]`, `color: ${color}; font-weight: bold`);
+	configName = configName || 'config.json'
+	let configPath = undefined
+	const DEFAULT_CONFIG = Object.seal(defaultConfig || {})
+	var config = undefined
 
-	configName = configName || "config.json";
-	let configPath = undefined;
-	const DEFAULT_CONFIG = Object.seal(defaultConfig || {});
-	var config = undefined;
+	this.isLoaded = () => config != undefined
 
-	this.isLoaded = () => config != undefined;
-
-	const callbacks = [void 0];
-	let silentMode = false;
+	const callbacks = [void 0]
+	let silentMode = false
 
 	this.addCallback = (callback = (config) => void 0) => {
-		if (typeof callback === "function") callbacks.push(callback);
-	};
+		if (typeof callback === 'function') callbacks.push(callback)
+	}
 
 	this.removeCallback = (callback = (config) => void 0) => {
-		const index = callbacks.indexOf(callback);
-		if (index !== -1) callbacks.splice(index, 1);
-	};
+		const index = callbacks.indexOf(callback)
+		if (index !== -1) callbacks.splice(index, 1)
+	}
 
 	this.watchOption = (selector = void 0) => {
 		return (callback = () => void 0) => {
-			let mappedProps = undefined;
+			let mappedProps = undefined
 			const update = () => {
-				let newMappedProps = this.getOption(selector);
+				let newMappedProps = this.getOption(selector)
 				// console.debug("[wo]\n<-", mappedProps, "\n->", newMappedProps);
-				if (newMappedProps != undefined && !shallowEqual(mappedProps, newMappedProps)) {
-					mappedProps = newMappedProps;
-					callback(mappedProps);
+				if (
+					newMappedProps != undefined &&
+					!shallowEqual(mappedProps, newMappedProps)
+				) {
+					mappedProps = newMappedProps
+					callback(mappedProps)
 				}
-			};
-			update();
-			this.addCallback(update);
-		};
+			}
+			update()
+			this.addCallback(update)
+		}
 	}
 
 	const runCallbacks = () => {
-		callbacks.forEach((callback) => typeof callback === "function" ? callback({ ...config }) : null);
-	};
+		callbacks.forEach((callback) =>
+			typeof callback === 'function' ? callback({ ...config }) : null
+		)
+	}
 
 	/**
 	 * Read config from path
@@ -82,22 +92,24 @@ const Config = function ({
 	 * @returns {object}
 	 */
 	const readConfig = (configPath) => {
-		let forceSave = false;
+		let forceSave = false
 		if (!fs.existsSync(configPath)) {
-			logger.debug("[read]", 'Generating a new configuration file...');
-			if (config == undefined) config = DEFAULT_CONFIG;
-			forceSave = true;
+			logger.debug('[read]', 'Generating a new configuration file...')
+			if (config == undefined) config = DEFAULT_CONFIG
+			forceSave = true
 		} else {
 			try {
-				config = fs.readFileSync(configPath, "utf-8");
-				config = Object.assign({}, DEFAULT_CONFIG, JSON.parse(config));
+				config = fs.readFileSync(configPath, 'utf-8')
+				config = Object.assign({}, DEFAULT_CONFIG, JSON.parse(config))
 			} catch (err) {
-				logger.warn('Configuration file contains malformed JSON or is corrupted!');
-				config = DEFAULT_CONFIG;
-				forceSave = true;
+				logger.warn(
+					'Configuration file contains malformed JSON or is corrupted!'
+				)
+				config = DEFAULT_CONFIG
+				forceSave = true
 			}
 		}
-		return this.save(true, forceSave, "read -> save");
+		return this.save(true, forceSave, 'read -> save')
 	}
 
 	/**
@@ -107,13 +119,13 @@ const Config = function ({
 	 */
 	const watchCallback = (event, filename) => {
 		if (filename == configName) {
-			logger.log("[watch]", `${filename} file`, "->", event);
-			readConfig(configPath);
-			if (event == "change") {
+			logger.log('[watch]', `${filename} file`, '->', event)
+			readConfig(configPath)
+			if (event == 'change') {
 				if (!silentMode) {
-					runCallbacks();
+					runCallbacks()
 				} else {
-					logger.warn("[watch]", "> silent change");
+					logger.warn('[watch]', '> silent change')
 				}
 			}
 		}
@@ -122,15 +134,20 @@ const Config = function ({
 	/**
 	 * Load configuration and start watching
 	 * @returns {object}
-	*/
+	 */
 	this.load = (config_dir = undefined) => {
-		config_dir = config_dir || configDir;
-		configPath = path.join(config_dir, configName);
-		readConfig(configPath);
-		logger.debug("[load]", `${configName} file`, "->", (this.isLoaded() ? 'success' : 'failure'));
+		config_dir = config_dir || configDir
+		configPath = path.join(config_dir, configName)
+		readConfig(configPath)
+		logger.debug(
+			'[load]',
+			`${configName} file`,
+			'->',
+			this.isLoaded() ? 'success' : 'failure'
+		)
 		if (this.isLoaded())
-			fs.watch(configPath, debounce(watchCallback, 100, true, false));
-		return config;
+			fs.watch(configPath, debounce(watchCallback, 100, true, false))
+		return config
 	}
 
 	/**
@@ -140,22 +157,31 @@ const Config = function ({
 	 * @param {string} reason reason for saving (only for debug purpose)
 	 * @returns {object}
 	 */
-	this.save = (silent = false, forceSave = true, reason = "") => {
-		silentMode = silent;
-		if (!fs.existsSync(configPath)) fs.mkdirSync(path.join(configPath, '..'), { recursive: true });
-		const validatedConfig = validateKeySet(DEFAULT_CONFIG, config);
-		if (!shallowEqual(config, validatedConfig) || forceSave) { // prevent unnecessary writings
-			config = validatedConfig;
+	this.save = (silent = false, forceSave = true, reason = '') => {
+		silentMode = silent
+		if (!fs.existsSync(configPath))
+			fs.mkdirSync(path.join(configPath, '..'), { recursive: true })
+		const validatedConfig = validateKeySet(DEFAULT_CONFIG, config)
+		if (!shallowEqual(config, validatedConfig) || forceSave) {
+			// prevent unnecessary writings
+			config = validatedConfig
 			try {
-				const content = JSON.stringify(config, null, 4);
-				fs.writeFileSync(configPath, content, "utf-8");
+				const content = JSON.stringify(config, null, 4)
+				fs.writeFileSync(configPath, content, 'utf-8')
 			} catch (e) {
-				logger.error("[save]", 'Config save error:', e)
+				logger.error('[save]', 'Config save error:', e)
 			}
-			logger.debug("[save]", "Config saved!", "Silent:", silent, "Reason:", reason);
+			logger.debug(
+				'[save]',
+				'Config saved!',
+				'Silent:',
+				silent,
+				'Reason:',
+				reason
+			)
 		}
-		silentMode = false;
-		return Boolean(config);
+		silentMode = false
+		return Boolean(config)
 	}
 
 	/**
@@ -166,20 +192,22 @@ const Config = function ({
 	 */
 	this.setOption = async (key, value = void 0) => {
 		if (typeof key == 'object' && value == void 0) {
-			config = key;
+			config = key
 		} else if (typeof key == 'string') {
-			let valuePath = key.split('.');
+			let valuePath = key.split('.')
 			if (valuePath.length >= 2) {
-				let firstKey = valuePath.shift();
-				let lastKey = valuePath.pop();
-				valuePath.reduce((o, k) => o[k] = o[k] || {}, config[firstKey])[lastKey] = value;
+				let firstKey = valuePath.shift()
+				let lastKey = valuePath.pop()
+				valuePath.reduce((o, k) => (o[k] = o[k] || {}), config[firstKey])[
+					lastKey
+				] = value
 			} else {
-				config[key] = value;
+				config[key] = value
 			}
 		} else {
-			return;
+			return
 		}
-		return this.save(false, true, "set option");
+		return this.save(false, true, 'set option')
 	}
 
 	/**
@@ -189,19 +217,18 @@ const Config = function ({
 	 * @returns {string|number|object}
 	 */
 	this.getOption = (selector = void 0, _default = false) => {
-		let state = Object.assign({}, _default ? DEFAULT_CONFIG : config);
-		if (typeof selector === "function") {
+		let state = Object.assign({}, _default ? DEFAULT_CONFIG : config)
+		if (typeof selector === 'function') {
 			try {
-				state = selector(state);
-			} catch (e) { } // тут похуй + поебать
-		} else if (typeof selector === "string") {
-			let valuePath = selector.split('.');
-			let firstKey = valuePath.shift();
-			state = valuePath.reduce((o, k) => o[k] = o[k] ?? {}, state[firstKey]);
+				state = selector(state)
+			} catch (e) {} // тут похуй + поебать
+		} else if (typeof selector === 'string') {
+			let valuePath = selector.split('.')
+			let firstKey = valuePath.shift()
+			state = valuePath.reduce((o, k) => (o[k] = o[k] ?? {}), state[firstKey])
 		}
-		return state;
+		return state
 	}
-
 }
 
-module.exports = Config;
+module.exports = Config
