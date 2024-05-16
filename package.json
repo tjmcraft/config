@@ -1,5 +1,5 @@
 {
-  "name": "noconfig",
+  "name": "@tjmc/config",
   "version": "1.0.0",
   "description": "NodeJS Config store lib",
   "main": "index.js",
