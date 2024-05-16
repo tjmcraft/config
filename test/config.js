@@ -20,7 +20,7 @@ const config = new Config({
 	defaultConfig: DEFAULT_CONFIG,
 });
 
-module.exports.load = () => config.load();
+module.exports.load = config.load;
 module.exports.getOption = config.getOption;
 module.exports.addCallback = config.addCallback;
 module.exports.removeCallback = config.removeCallback;

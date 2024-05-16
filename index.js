@@ -28,53 +28,55 @@ const validateKeySet = (srcObj, destObj) => {
  * @param {string} params.configDir Configuration file directory
  * @param {object} params.defaultConfig Default configuration model
  * @param {LoggerUtil} params.logger Logger instance for debug
+ * @param {boolean} params.debug Should debug some additional things to logger
  */
 const Config = function ({
 	configName,
 	configDir = './',
 	defaultConfig,
 	logger,
+	debug = false
 }) {
 
 	logger ||= LoggerUtil('%c[ConfigManager]', 'color: #1052a5; font-weight: bold', true);
 
-	configName = configName || 'config.json'
-	let configPath = undefined
-	const DEFAULT_CONFIG = Object.seal(defaultConfig || {})
-	var config = undefined
+	configName ||= 'config.json';
+	let configPath = undefined;
+	const DEFAULT_CONFIG = Object.seal(defaultConfig || {});
+	var config = undefined;
 
-	this.isLoaded = () => config != undefined
+	this.isLoaded = () => config != undefined;
 
-	const callbacks = [void 0]
-	let silentMode = false
+	const callbacks = [void 0];
+	let silentMode = false;
 
 	this.addCallback = (callback = (config) => void 0) => {
 		if (typeof callback === 'function') callbacks.push(callback)
-	}
+	};
 
 	this.removeCallback = (callback = (config) => void 0) => {
 		const index = callbacks.indexOf(callback)
 		if (index !== -1) callbacks.splice(index, 1)
-	}
+	};
 
 	this.watchOption = (selector = void 0) => {
 		return (callback = () => void 0) => {
 			let mappedProps = undefined
 			const update = () => {
-				let newMappedProps = this.getOption(selector)
-				// console.debug("[wo]\n<-", mappedProps, "\n->", newMappedProps);
+				let newMappedProps = this.getOption(selector);
+				debug && logger.debug("[watchOption]\nMapped:", mappedProps, "\nnextProps:", newMappedProps);
 				if (
 					newMappedProps != undefined &&
 					!shallowEqual(mappedProps, newMappedProps)
 				) {
-					mappedProps = newMappedProps
-					callback(mappedProps)
+					mappedProps = newMappedProps;
+					callback(mappedProps);
 				}
 			}
-			update()
-			this.addCallback(update)
+			update();
+			this.addCallback(update);
 		}
-	}
+	};
 
 	const runCallbacks = () => {
 		callbacks.forEach((callback) =>
@@ -90,7 +92,7 @@ const Config = function ({
 	const readConfig = (configPath) => {
 		let forceSave = false
 		if (!fs.existsSync(configPath)) {
-			logger.debug('[read]', 'Generating a new configuration file...')
+			debug && logger.debug('[read]', 'Generating a new configuration file...')
 			if (config == undefined) config = DEFAULT_CONFIG
 			forceSave = true
 		} else {
@@ -115,7 +117,7 @@ const Config = function ({
 	 */
 	const watchCallback = (event, filename) => {
 		if (filename == configName) {
-			logger.log('[watch]', `${filename} file`, '->', event)
+			debug && logger.debug('[watchCallback]', `${filename} file`, '->', event)
 			readConfig(configPath)
 			if (event == 'change') {
 				if (!silentMode) {
@@ -162,8 +164,9 @@ const Config = function ({
 			// prevent unnecessary writings
 			config = validatedConfig
 			try {
-				const content = JSON.stringify(config, null, 4)
-				fs.writeFileSync(configPath, content, 'utf-8')
+				const content = JSON.stringify(config, null, 4);
+				fs.writeFileSync(configPath, content, 'utf-8');
+				debug && logger.debug('[save]', 'Saved json successfully!')
 			} catch (e) {
 				logger.error('[save]', 'Config save error:', e)
 			}
