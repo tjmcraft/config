@@ -12,15 +12,6 @@ const DEFAULT_CONFIG = Object.seal({
 			cwd: '',
 			args: '',
 	},
-	minecraft: {
-			launch: {
-					fullscreen: false,
-					width: 1280,
-					height: 720
-			},
-			autoConnect: false,
-			hideOnLaunch: true,
-	},
 });
 
 const config = new Config({
@@ -43,5 +34,5 @@ exports.getAllOptionsSync = () => config.getOption();
 exports.getAllOptions = async () => config.getOption();
 exports.setOption = (key, value) => config.setOption(key, value);
 
-exports.getMinecraftDirectory = (def = false) => config.getOption(config => config.overrides.path.minecraft, def);
-exports.getVersionsDirectory = (def = false) => config.getOption(config => config.overrides.path.versions, def);
+exports.getJavaPath = (def = false) => config.getOption(config => config.java.path, def);
+exports.getJavaArgs = (def = false) => config.getOption(config => config.java.args, def);

@@ -5,5 +5,11 @@ const config = require("./config");
 config.load();
 // Then call to get all options
 console.debug(">>", config.getAllOptionsSync());
+// Add callback event listener
+config.addCallback((cfg) => console.debug("Config Callback", cfg));
+// Set option
+config.setOption('java.args', '--version');
+// Then reveal all options
+console.debug(">>", config.getAllOptionsSync());
 // Then exit
-process.exit();
+setTimeout(() => process.exit(), 10);
