@@ -1,8 +1,8 @@
-const fs = require('fs')
-const path = require('path')
-const { shallowEqual } = require('/util/Iterates')
-const { debounce } = require('/util/Schedulers')
-const LoggerUtil = require('/util/LoggerUtil')
+const fs = require('fs');
+const path = require('path');
+const { shallowEqual } = require('./util/Iterates.js');
+const { debounce } = require('./util/Schedulers.js');
+const LoggerUtil = require('./loggers/console.js');
 
 const validateKeySet = (srcObj, destObj) => {
 	if (srcObj == null) srcObj = {}
@@ -24,23 +24,19 @@ const validateKeySet = (srcObj, destObj) => {
 /**
  * Config Manager
  * @param {object} params
- * @param {string} params.prefix Prefix name (for debug)
- * @param {string} params.color Color of prefix name (for debug)
  * @param {string} params.configName Configuration filename
  * @param {string} params.configDir Configuration file directory
  * @param {object} params.defaultConfig Default configuration model
+ * @param {LoggerUtil} params.logger Logger instance for debug
  */
 const Config = function ({
-	prefix = 'ConfigManager',
-	color = '#1052a5',
 	configName,
 	configDir = './',
 	defaultConfig,
+	logger,
 }) {
-	const logger = LoggerUtil(
-		`%c[${prefix}]`,
-		`color: ${color}; font-weight: bold`
-	)
+
+	logger ||= LoggerUtil('%c[ConfigManager]', 'color: #1052a5; font-weight: bold', true);
 
 	configName = configName || 'config.json'
 	let configPath = undefined

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const log = require('electron-log/main');
 
 log.transports.file.level = 'debug';
 log.transports.console.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
@@ -17,10 +18,10 @@ log.transports.file.maxSize = 1024;
 
 class LoggerUtil {
 
-    constructor(prefix, style) {
-        this.prefix = prefix
-        this.style = style
-        this.disabled = false
+    constructor(prefix, style, disabled = false) {
+        this.prefix = prefix;
+        this.style = style;
+        this.disabled = disabled;
     }
 
     log() {
@@ -50,6 +51,6 @@ class LoggerUtil {
 
 }
 
-module.exports = function(prefix, style) {
-    return new LoggerUtil(prefix, style)
+module.exports = function(prefix, style, disabled) {
+    return new LoggerUtil(prefix, style, disabled)
 }
