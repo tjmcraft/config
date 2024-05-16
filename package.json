@@ -10,5 +10,10 @@
     "NodeJs"
   ],
   "author": "MakAndJo",
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "util/*",
+    "loggers/*"
+  ]
 }
