@@ -1,4 +1,5 @@
 const Config = require("..");
+const path = require('node:path');
 
 const DEFAULT_CONFIG = Object.seal({
 	java: {
@@ -26,7 +27,7 @@ const config = new Config({
 	prefix: "ConfigManager",
 	color: "#1052a5",
 	configName: 'config.json',
-	configDir: './',
+	configDir: path.resolve(__dirname, './'),
 	defaultConfig: DEFAULT_CONFIG,
 });
 
