@@ -24,8 +24,6 @@ const DEFAULT_CONFIG = Object.seal({
 });
 
 const config = new Config({
-	prefix: "ConfigManager",
-	color: "#1052a5",
 	configName: 'config.json',
 	configDir: path.resolve(__dirname, './'),
 	defaultConfig: DEFAULT_CONFIG,
