@@ -1,4 +1,4 @@
-const Config = require("..");
+const Config = require("@tjmc/config");
 const path = require('node:path');
 
 const DEFAULT_CONFIG = Object.seal({
