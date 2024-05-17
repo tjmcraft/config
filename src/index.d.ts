@@ -1,12 +1,49 @@
 import { PathLike } from 'fs';
 
+interface Logger {
+	/**
+	 * Log an error message
+	 */
+	error(...params: any[]): void;
+
+	/**
+	 * Log a warning message
+	 */
+	warn(...params: any[]): void;
+
+	/**
+	 * Log an informational message
+	 */
+	info(...params: any[]): void;
+
+	/**
+	 * Log a verbose message
+	 */
+	verbose(...params: any[]): void;
+
+	/**
+	 * Log a debug message
+	 */
+	debug(...params: any[]): void;
+
+	/**
+	 * Log a silly message
+	 */
+	silly(...params: any[]): void;
+
+	/**
+	 * Shortcut to info
+	 */
+	log(...params: any[]): void;
+}
+
 /**
  * Config Manager
  * @param {object} params
  * @param {string} params.configName Configuration filename
  * @param {string} params.configDir Configuration file directory
  * @param {object} params.defaultConfig Default configuration model
- * @param {LoggerUtil} params.logger Logger instance for debug
+ * @param {Logger} params.logger Logger instance for debug
  * @param {boolean} params.debug Should debug some additional things to logger
  */
 declare class Config<TConfig = AnyLiteral> {
@@ -14,7 +51,7 @@ declare class Config<TConfig = AnyLiteral> {
 		configName: string;
 		configDir: PathLike;
 		defaultConfig: TConfig;
-		logger: any;
+		logger: Logger;
 		debug: boolean;
 	});
 	isLoaded: () => boolean;
