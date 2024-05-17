@@ -1,4 +1,4 @@
-const Config = require("../dist/config.cjs");
+const { default: Config } = require("../dist/config.cjs");
 const path = require('node:path');
 
 // console.debug(">>", Config);
