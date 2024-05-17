@@ -38,7 +38,7 @@ const Config = function ({
 	debug = false
 }) {
 
-	logger ||= LoggerUtil('%c[ConfigManager]', 'color: #1052a5; font-weight: bold', true);
+	logger ||= LoggerUtil('%c[ConfigManager]', 'color: #1052a5; font-weight: bold', false);
 
 	configName ||= 'config.json';
 	let configPath = undefined;
@@ -121,9 +121,10 @@ const Config = function ({
 			readConfig(configPath)
 			if (event == 'change') {
 				if (!silentMode) {
-					runCallbacks()
+					debug && logger.debug('[watch]', '> run callbacks')
+					runCallbacks();
 				} else {
-					logger.warn('[watch]', '> silent change')
+					debug && logger.warn('[watch]', '> silent change')
 				}
 			}
 		}
@@ -137,7 +138,7 @@ const Config = function ({
 		config_dir = config_dir || configDir
 		configPath = path.join(config_dir, configName)
 		readConfig(configPath)
-		logger.debug(
+		logger.log(
 			'[load]',
 			`${configName} file`,
 			'->',
@@ -166,11 +167,11 @@ const Config = function ({
 			try {
 				const content = JSON.stringify(config, null, 4);
 				fs.writeFileSync(configPath, content, 'utf-8');
-				debug && logger.debug('[save]', 'Saved json successfully!')
+				logger.log('[save]', 'Config saved successfully!')
 			} catch (e) {
 				logger.error('[save]', 'Config save error:', e)
 			}
-			logger.debug(
+			debug && logger.debug(
 				'[save]',
 				'Config saved!',
 				'Silent:',
