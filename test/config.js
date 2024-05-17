@@ -1,5 +1,8 @@
-const Config = require("@tjmc/config");
+const Config = require("../dist/config.cjs");
 const path = require('node:path');
+
+// console.debug(">>", Config);
+// process.exit();
 
 const DEFAULT_CONFIG = Object.seal({
 	java: {
@@ -14,7 +17,7 @@ const DEFAULT_CONFIG = Object.seal({
 	},
 });
 
-const config = new Config({
+const config = Config({
 	configName: 'config.json',
 	configDir: path.resolve(__dirname, './'),
 	defaultConfig: DEFAULT_CONFIG,

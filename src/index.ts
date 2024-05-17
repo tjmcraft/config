@@ -1,25 +1,10 @@
+import { PathLike, WatchEventType } from "fs";
+
 const fs = require('fs');
 const path = require('path');
-const { shallowEqual } = require('./util/Iterates.js');
-const { debounce } = require('./util/Schedulers.js');
+const { shallowEqual, validateKeySet } = require('./util/Iterates');
+const { debounce } = require('./util/Schedulers');
 const LoggerUtil = require('./loggers/console.js');
-
-const validateKeySet = (srcObj, destObj) => {
-	if (srcObj == null) srcObj = {}
-	const keys = Object.keys(srcObj)
-	for (let i = 0; i < keys.length; i++) {
-		if (typeof destObj[keys[i]] === 'undefined') {
-			destObj[keys[i]] = srcObj[keys[i]]
-		} else if (
-			typeof srcObj[keys[i]] === 'object' &&
-			srcObj[keys[i]] != null &&
-			!(srcObj[keys[i]] instanceof Array)
-		) {
-			destObj[keys[i]] = validateKeySet(srcObj[keys[i]], destObj[keys[i]])
-		}
-	}
-	return destObj
-}
 
 /**
  * Config Manager
@@ -30,40 +15,50 @@ const validateKeySet = (srcObj, destObj) => {
  * @param {LoggerUtil} params.logger Logger instance for debug
  * @param {boolean} params.debug Should debug some additional things to logger
  */
-const Config = function ({
+export default function Config<TConfig = AnyLiteral>({
 	configName,
 	configDir = './',
 	defaultConfig,
 	logger,
 	debug = false
+}: {
+		configName: string;
+		configDir: PathLike;
+		defaultConfig: TConfig;
+		logger: any;
+		debug: boolean;
 }) {
 
 	logger ||= LoggerUtil('%c[ConfigManager]', 'color: #1052a5; font-weight: bold', true);
 
+	const DEFAULT_CONFIG: TConfig = Object.seal(defaultConfig);
 	configName ||= 'config.json';
-	let configPath = undefined;
-	const DEFAULT_CONFIG = Object.seal(defaultConfig || {});
-	var config = undefined;
+	let configPath: PathLike;
+	var config: TConfig | undefined = undefined;
 
-	this.isLoaded = () => config != undefined;
-
-	const callbacks = [void 0];
 	let silentMode = false;
 
-	this.addCallback = (callback = (config) => void 0) => {
+	type StoreCallback = (cfg: TConfig) => void;
+	let callbacks: StoreCallback[] = [];
+
+	const addCallback = (callback: StoreCallback) => {
 		if (typeof callback === 'function') callbacks.push(callback)
 	};
 
-	this.removeCallback = (callback = (config) => void 0) => {
+	const removeCallback = (callback: StoreCallback) => {
 		const index = callbacks.indexOf(callback)
 		if (index !== -1) callbacks.splice(index, 1)
 	};
 
-	this.watchOption = (selector = void 0) => {
-		return (callback = () => void 0) => {
-			let mappedProps = undefined
+	const runCallbacks = () => {
+		callbacks.forEach((callback) => typeof callback === 'function' ? callback({ ...config } as TConfig) : null)
+	}
+
+	const watchOption = (selector = void 0) => {
+		return (callback: Function = () => void 0) => {
+			let mappedProps: Partial<TConfig> | undefined = undefined;
 			const update = () => {
-				let newMappedProps = this.getOption(selector);
+				let newMappedProps = getOption(selector);
 				debug && logger.debug("[watchOption]\nMapped:", mappedProps, "\nnextProps:", newMappedProps);
 				if (
 					newMappedProps != undefined &&
@@ -74,22 +69,16 @@ const Config = function ({
 				}
 			}
 			update();
-			this.addCallback(update);
+			addCallback(update);
 		}
 	};
 
-	const runCallbacks = () => {
-		callbacks.forEach((callback) =>
-			typeof callback === 'function' ? callback({ ...config }) : null
-		)
-	}
+	const isLoaded = () => config != undefined;
 
 	/**
 	 * Read config from path
-	 * @param {string} configPath path to config file
-	 * @returns {object}
 	 */
-	const readConfig = (configPath) => {
+	const readConfig = (configPath: PathLike) => {
 		let forceSave = false
 		if (!fs.existsSync(configPath)) {
 			debug && logger.debug('[read]', 'Generating a new configuration file...')
@@ -97,8 +86,8 @@ const Config = function ({
 			forceSave = true
 		} else {
 			try {
-				config = fs.readFileSync(configPath, 'utf-8')
-				config = Object.assign({}, DEFAULT_CONFIG, JSON.parse(config))
+				let config_raw = fs.readFileSync(configPath, 'utf-8');
+				config = Object.assign({}, DEFAULT_CONFIG, JSON.parse(config_raw));
 			} catch (err) {
 				logger.warn(
 					'Configuration file contains malformed JSON or is corrupted!'
@@ -107,23 +96,22 @@ const Config = function ({
 				forceSave = true
 			}
 		}
-		return this.save(true, forceSave, 'read -> save')
+		return save(true, forceSave, 'read -> save')
 	}
 
 	/**
 	 * File watching callback
-	 * @param {fs.WatchEventType} event file event
-	 * @param {fs.PathLike} filename file name
 	 */
-	const watchCallback = (event, filename) => {
+	const watchCallback = (event: WatchEventType, filename: PathLike) => {
 		if (filename == configName) {
 			debug && logger.debug('[watchCallback]', `${filename} file`, '->', event)
 			readConfig(configPath)
 			if (event == 'change') {
 				if (!silentMode) {
-					runCallbacks()
+					debug && logger.debug('[watch]', '> run callbacks');
+					runCallbacks();
 				} else {
-					logger.warn('[watch]', '> silent change')
+					debug && logger.debug('[watch]', '> silent change');
 				}
 			}
 		}
@@ -131,19 +119,18 @@ const Config = function ({
 
 	/**
 	 * Load configuration and start watching
-	 * @returns {object}
 	 */
-	this.load = (config_dir = undefined) => {
-		config_dir = config_dir || configDir
+	const load = (config_dir: PathLike | undefined = undefined) => {
+		config_dir ||= configDir;
 		configPath = path.join(config_dir, configName)
 		readConfig(configPath)
 		logger.debug(
 			'[load]',
 			`${configName} file`,
 			'->',
-			this.isLoaded() ? 'success' : 'failure'
+			isLoaded() ? 'success' : 'failure'
 		)
-		if (this.isLoaded())
+		if (isLoaded())
 			fs.watch(configPath, debounce(watchCallback, 100, true, false))
 		return config
 	}
@@ -155,7 +142,7 @@ const Config = function ({
 	 * @param {string} reason reason for saving (only for debug purpose)
 	 * @returns {object}
 	 */
-	this.save = (silent = false, forceSave = true, reason = '') => {
+	const save = (silent = false, forceSave = true, reason = '') => {
 		silentMode = silent
 		if (!fs.existsSync(configPath))
 			fs.mkdirSync(path.join(configPath, '..'), { recursive: true })
@@ -166,11 +153,10 @@ const Config = function ({
 			try {
 				const content = JSON.stringify(config, null, 4);
 				fs.writeFileSync(configPath, content, 'utf-8');
-				debug && logger.debug('[save]', 'Saved json successfully!')
 			} catch (e) {
 				logger.error('[save]', 'Config save error:', e)
 			}
-			logger.debug(
+			debug && logger.debug(
 				'[save]',
 				'Config saved!',
 				'Silent:',
@@ -189,45 +175,75 @@ const Config = function ({
 	 * @param {string|object} [value] value to set to key
 	 * @returns {object}
 	 */
-	this.setOption = async (key, value = void 0) => {
+	const setOption = async <K extends keyof TConfig>(key: K, value: TConfig[K]) => {
+		if (!isLoaded()) return undefined;
+		config = config as TConfig;
 		if (typeof key == 'object' && value == void 0) {
 			config = key
 		} else if (typeof key == 'string') {
 			let valuePath = key.split('.')
 			if (valuePath.length >= 2) {
-				let firstKey = valuePath.shift()
-				let lastKey = valuePath.pop()
-				valuePath.reduce((o, k) => (o[k] = o[k] || {}), config[firstKey])[
-					lastKey
-				] = value
+				let firstKey = valuePath.shift() as keyof TConfig;
+				let lastKey = valuePath.pop() as string;
+				if (!config[firstKey]) {
+						config[firstKey] = {} as any;
+				}
+
+				let current = config[firstKey] as any;
+				valuePath.reduce((o, k) => {
+						if (!o[k]) {
+								o[k] = {};
+						}
+						return o[k];
+				}, current)[lastKey] = value;
 			} else {
-				config[key] = value
+				config[key as keyof TConfig] = value;
 			}
 		} else {
 			return
 		}
-		return this.save(false, true, 'set option')
+		return save(false, true, 'set option')
 	}
 
 	/**
 	 * Get option from config
-	 * @param {Function|String} [selector] selector must be a picker function or just a key string
-	 * @param {boolean} [_default] return default config value
-	 * @returns {string|number|object}
 	 */
-	this.getOption = (selector = void 0, _default = false) => {
-		let state = Object.assign({}, _default ? DEFAULT_CONFIG : config)
+	const getOption = (selector: ((config: TConfig) => Partial<TConfig>) | string | undefined = undefined, _default = false) => {
+		if (!isLoaded()) return undefined;
+		config = config as TConfig;
+		let state: TConfig | Partial<TConfig> = Object.seal(_default ? DEFAULT_CONFIG : config as TConfig);
 		if (typeof selector === 'function') {
 			try {
-				state = selector(state)
+				state = selector(state as TConfig);
 			} catch (e) {} // тут похуй + поебать
 		} else if (typeof selector === 'string') {
-			let valuePath = selector.split('.')
-			let firstKey = valuePath.shift()
-			state = valuePath.reduce((o, k) => (o[k] = o[k] ?? {}), state[firstKey])
+			let valuePath = selector.split('.');
+			if (valuePath.length > 0) {
+				let firstKey = valuePath.shift() as keyof TConfig;
+				let current = state[firstKey] as any;
+				// valuePath.reduce((o, k) => (o[k] = o[k] ?? {}), state[firstKey]) as Partial<TConfig>;
+				valuePath.reduce((o, k, idx) => {
+					if (idx === valuePath.length - 1) {
+							// Last key in the path, stop reducing here
+							o[k] = o[k] ?? {};
+							return o[k];
+					}
+					o[k] = o[k] ?? {};
+					return o[k];
+				}, current);
+			}
 		}
-		return state
+		return state;
 	}
-}
 
-module.exports = Config
+	return {
+		isLoaded,
+		addCallback,
+		removeCallback,
+		watchOption,
+		load,
+		save,
+		setOption,
+		getOption,
+	};
+}

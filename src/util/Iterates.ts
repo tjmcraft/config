@@ -1,11 +1,10 @@
-
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 /**
  * inlined Object.is polyfill to avoid requiring consumers ship their own
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
  */
-function is(x, y) {
+function is(x: any, y: any): boolean {
 	// SameValue algorithm
 	if (x === y) { // Steps 1-5, 7-10
 		// Steps 6.b-6.e: +0 != -0
@@ -22,7 +21,7 @@ function is(x, y) {
  * when any key has values which are not strictly equal between the arguments.
  * Returns true when the values of all keys are strictly equal.
  */
-function shallowEqual(objA, objB) {
+export function shallowEqual(objA: AnyLiteral | any, objB: AnyLiteral | any): boolean {
 	if (is(objA, objB)) {
 		return true;
 	}
@@ -52,4 +51,19 @@ function shallowEqual(objA, objB) {
 	return true;
 }
 
-exports.shallowEqual = shallowEqual;
+export const validateKeySet = (srcObj: AnyLiteral, destObj: AnyLiteral) => {
+	if (srcObj == null) srcObj = {}
+	const keys = Object.keys(srcObj)
+	for (let i = 0; i < keys.length; i++) {
+		if (typeof destObj[keys[i]] === 'undefined') {
+			destObj[keys[i]] = srcObj[keys[i]]
+		} else if (
+			typeof srcObj[keys[i]] === 'object' &&
+			srcObj[keys[i]] != null &&
+			!(srcObj[keys[i]] instanceof Array)
+		) {
+			destObj[keys[i]] = validateKeySet(srcObj[keys[i]], destObj[keys[i]])
+		}
+	}
+	return destObj;
+};

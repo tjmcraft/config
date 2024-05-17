@@ -4,16 +4,37 @@
   "description": "NodeJS Config store lib",
   "main": "index.js",
   "scripts": {
-    "test": "node test/index"
+    "test": "node test/index",
+    "build": "rimraf dist && tsup",
+    "typescript": "tsc --noEmit --project tsconfig.json"
   },
   "keywords": [
     "NodeJs"
   ],
   "author": "MakAndJo",
   "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "rimraf": "^5.0.7",
+    "tslib": "^2.6.2",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5"
+  },
+  "main": "dist/config.cjs",
+  "types": "dist/config.d.ts",
+  "source": "src/index",
   "files": [
-    "index.js",
-    "util/*",
-    "loggers/*"
-  ]
+    "dist",
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    "./tsconfig.json": "./tsconfig.json",
+    ".": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.mjs",
+      "default": "./dist/config.cjs"
+    }
+  },
+  "sideEffects": false
 }
