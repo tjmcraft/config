@@ -1,6 +1,6 @@
 {
   "name": "@tjmc/config",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "NodeJS Config store lib",
   "main": "src/index.js",
   "typings": "src/index.d.ts",
