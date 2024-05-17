@@ -22,17 +22,10 @@ const config = new Config({
 
 module.exports.load = config.load;
 module.exports.getOption = config.getOption;
+module.exports.setOption = config.setOption;
+module.exports.watchOption = config.watchOption;
 module.exports.addCallback = config.addCallback;
 module.exports.removeCallback = config.removeCallback;
-module.exports.watchOption = config.watchOption;
 
-/**
- *
- * @returns {DEFAULT_CONFIG}
- */
 exports.getAllOptionsSync = () => config.getOption();
 exports.getAllOptions = async () => config.getOption();
-exports.setOption = (key, value) => config.setOption(key, value);
-
-exports.getJavaPath = (def = false) => config.getOption(config => config.java.path, def);
-exports.getJavaArgs = (def = false) => config.getOption(config => config.java.args, def);
